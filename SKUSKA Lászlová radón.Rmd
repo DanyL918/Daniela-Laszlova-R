@@ -1,0 +1,176 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+
+##SKÚŠKA Lászlová
+
+##dáta z bakalárskej práce 
+##radón a úmrtia hľadanie súvislosti
+##príprava: -zistenie workdirectory a následný import dát z excel súboru
+
+getwd()
+setwd("C:/Users/ledgo/Desktop/Rko")
+getwd()
+install.packages("readxl")
+install.packages("tidyverse")
+
+library("readxl")
+read_excel("C:/Users/ledgo/Desktop/Rko/bakalarka.xlsx")
+##načítanie dát z excelu do premenej s ktorou budem pracovať
+
+library("readxl")
+radon<-read_excel("C:/Users/ledgo/Desktop/Rko/bakalarka.xlsx")
+radon
+```
+
+
+```{r}
+##zistenie o súbore počet stlpcov a riadkov
+
+library(tidyverse)
+head(radon)
+ncol(radon)
+nrow(radon)
+```
+
+
+```{r}
+##pre lepsšie vyvolávanie jednotlivých stlpcov ich premenujem (stlpec po stlpci pre stotožnenie so súborom , možnosť 2: cez vektor -names(x) <- c("nazov1", "nazov2", "nazov3", "nazov4", "nazov5".....))
+
+names(radon)[5]<-"obdobie"
+names(radon)[6]<-"rok"
+names(radon)[9]<-"sirka"
+names(radon)[10]<-"dlzka"
+names(radon)[11]<-"vyska"
+names(radon)[12]<-"RAC"
+names(radon)[13]<-"RAC.st.odch"
+names(radon)[15]<-"minRAC"
+names(radon)[16]<-"maxRAC"
+names(radon)[17]<-"G"
+names(radon)[18]<-"S"
+names(radon)[19]<-"F"
+names(radon)[21]<-"eUran"
+names(radon)[22]<-"Davka.gama"
+names(radon)[27]<-"RAC.home"
+names(radon)[28]<-"umrtia.rakovina"
+
+radon
+```
+```{r}
+##pracovať budeme hlavne s dátami radónu v dome a úmrtiami na rakovinu 
+##zobrazenie rozloženia dát pomocou histogramu
+##-výsledok: vidíme že dáta nie sú normálne roložené ale skôr ľavostranne (je nutné dávať pozor pri testovaní)
+
+ggplot(data = radon) +
+geom_histogram(mapping = aes(x = RAC.home)) +
+theme_bw()
+ggplot(data = radon) + 
+geom_histogram(mapping = aes(x = umrtia.rakovina)) +
+theme_bw()
+```
+
+```{r}
+##kreslenie grafov:
+##prvý graf zobrazuje bodové rozloženie závislosti radónu meraného v domácnosti a úmrtí na rakovinu pľúc v konkrétnej oblasti 
+##dáta sú zároveň delené podľa obdobia L-ktoré trvá od apríla po september a Z -ktoré trvá do okt´bra po marec (dôvod je rôzne teória rôzneho prenikania správania radónu (jeho aktivity) počas počasia prevažujúceho v zime a v lete)
+
+ggplot(data = radon) +
+geom_point(mapping = aes(x = RAC.home, y = umrtia.rakovina, color = as.factor(obdobie))) +
+theme_bw()
+
+##pre lepšie zobrazenie môžeme použiť funkciu facet_wrap pre oddelenie grafov období
+
+ggplot(data = radon) +
+geom_point(mapping = aes(x = RAC.home, y = umrtia.rakovina, colour = permeability)) +
+facet_wrap(~ obdobie) +
+theme_bw()
+
+##- následne pre lepšie zobrazene použijeme boxploty pre porovnanie období L a Z
+
+ggplot(data = radon) +
+geom_boxplot(mapping = aes(x = RAC.home, y = umrtia.rakovina, color = as.factor(obdobie))) +
+theme_bw()
+
+##- na základe výsledkov sa zdá že v našich dátach veľký rozdiel medzi týmito dvoma obdobiami nie je (zároveň v zimnom období je príliž málo meraní = berieme ako jedno celé obdobie)
+##- zároveň vidíme pár bodov =odľahlých hodnôt
+```
+
+```{r}
+##Ďalšia hodnota ktorá môže potenciálne ovplivniť naše dáta je hlavne rok merania 
+##-graf zobrazí najskôr závislosť radónu v dome s rokom merania 
+
+ggplot(data = radon) +
+geom_point(mapping = aes(x = rok, y = RAC.home)) +
+theme_bw()
+
+##porovnanie box plotov pre jednotlivé roky
+
+ggplot(data = radon) +
+geom_boxplot(mapping = aes(x = RAC.home, y = umrtia.rakovina, color = as.factor(rok))) +
+theme_bw()
+
+## na základe boxplotov a aj bodového grafu vidíme že sa hodnoty menia v rokoch čo boli merané,čo môže spôsobiť skreslenie výsledkov regresie úmrtí a radónu
+##vplyv rokov bol očakávaný na základe narušovania pôdy napríklad pre stavebné práce alebo zmena zloženia pôdy pre tvorbu ornej pôdy
+
+```
+```{r}
+##prvé sú jednotlivé zobrazenia závislosti RAC a úmrtí v jednotlivých rokoch
+
+ggplot(data = radon) +
+geom_point(mapping = aes(x = RAC.home, y = umrtia.rakovina, colour = permeability)) +
+facet_wrap(~ rok) +
+theme_bw()
+
+##v niektorých rokoch je dát príliž málo , ale zároveň sa zdá že vykazujú orčitú závislosť 
+
+## test multiple regression-závislsoť úmtrí od radónu a roku merania
+
+Radonlm<-lm(umrtia.rakovina ~ RAC.home + rok, data = radon)
+
+summary(Radonlm)
+
+##na základe výsledku - pozorujeme Estimated effect RAC na úmrtia je 27,74 čo znamená že pre každý 1% náraz RAC je 27,74% náraz úmtrí a Roku na úmrtia 1,3 čo znamená že pre každý 1% náraz rok je 1,3% náraz úmtrí, 
+##avšak hodnoty P= Pre oba parametre je určitá  pravdepodobnosť, že tento efekt je spôsobený náhodou =hodnota P nie je dostatočne nízka 
+```
+
+
+
+```{r}
+##okrem spomenutých dát môžu naš výsledky ovplivniť aj ďalšie faktory ku ktorým žiaľ nemáme prístup- najväčšie ovplyvnenie má fajčenie ako bolo zistené v mnohých štúdiách
+
+## okrem spomenutých problémov je tu aj fakt že zozbierané dáta o úmrtiach (okrem možnosti neúplnosti) boli zozbierané za pomerne krátky čas pre takúto štúdiu a pracovalo sa z priemernou hodnotou za zozbierané roky (preto musíme pracovať s dátami za celé obdobie merania)
+
+## testregresie-závislsoť úmtrí od radónu bez oladu na rok merania hodnoty radónu
+
+lmRadon = lm(RAC.home~umrtia.rakovina, data = radon)
+summary(lmRadon)
+RAC <-read_excel("C:/Users/ledgo/Desktop/Rko/bakalarka.xlsx", range ="AA1:AB372")
+
+  
+RAC
+plot(RAC)
+abline(lmRadon)
+
+## na základe výsledkov (hodnoty P) a aj zobrazených grafov  teda predpokladáme že závislosť je náhodná a teda dáta nevykazujú prepojenosť
+
+## pre zlepšenie a väčšiu presnosť  by bolo nutné presnejšie meranie Radónu (napríklad každý rok) a rovnako aj záznam o úmrtiach ktorý by bol vedený dlhšiu dobu než boli poskytnuté dáta , okrem toho aj určitá "izolácia" testovaného subjektu by bola vhodná inak je nutné počítať aj s ďalšími vplyvnmi ktorými sa jednotlivé oblasti (dediny a mestá líšia)
+
+```
+
